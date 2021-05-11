@@ -3,6 +3,8 @@ const app = express();
 
 const { config } = require('./config/index');
 const moviesApi = require('./routes/movies'); // Importamos el router.
+const userMoviesApi = require('./routes/userMovies'); // Importamos para el manejo de las movies del user.
+
 const { logErrors, wrapErrors, errorHandler } = require('./utils/middleware/errorHandlers');
 const notFoundHandler = require('./utils/middleware/noyFoundHandler');
 
@@ -11,6 +13,7 @@ app.use(express.json());
 
 // Usamos la funcion para manejar el router o ruta /api/movies
 moviesApi(app); // Routes.
+userMoviesApi(app); // Router de user-movies.
 
 // Catch 404. funciona mas como una ruta que como un middleware.
 // Por eso va justo despues de todas las rutas.
