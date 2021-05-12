@@ -1,7 +1,7 @@
 const passport = require('passport'); // Para la estrategia passport.
 const { BasicStrategy } = require('passport-http'); // La estrategia.
 const boom = require('@hapi/boom'); // Para el manejo de errores.
-const bcrypt = requre('bcrypt'); // Para verificar si el password es el mismo que el de la base de datos.
+const bcrypt = require('bcrypt'); // Para verificar si el password es el mismo que el de la base de datos.
 
 // Los servicios del usuario para buscarlos en la base de datos y poder compararlos.
 const UsersService = require('../../../services/users');
@@ -37,4 +37,4 @@ passport.use(new BasicStrategy(async function(email, password, cb) {
   } catch (err) {
     return cb(err); // manejamos el error.
   }
-}))
+}));

@@ -2,6 +2,8 @@ const express = require('express');
 const app = express();
 
 const { config } = require('./config/index');
+
+const authApi = require('./routes/auth'); // Importamos para comprobar el login de los users.
 const moviesApi = require('./routes/movies'); // Importamos el router.
 const userMoviesApi = require('./routes/userMovies'); // Importamos para el manejo de las movies del user.
 
@@ -12,6 +14,7 @@ const notFoundHandler = require('./utils/middleware/noyFoundHandler');
 app.use(express.json());
 
 // Usamos la funcion para manejar el router o ruta /api/movies
+authApi(app); // Para el login de los users.
 moviesApi(app); // Routes.
 userMoviesApi(app); // Router de user-movies.
 
