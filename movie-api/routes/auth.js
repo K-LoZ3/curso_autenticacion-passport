@@ -112,6 +112,17 @@ function authApi(app) {
     const { body: user } = req;
 
     try {
+      // Buscamos si el usuario ya esta en la base de datos.
+      const userExists = await usersService.getUser(user);
+
+      // Si este existe retornamos un error.
+      if(userExists) {
+        res.status(409).json({
+          message: 'user registred',
+        });
+        return; // Para que no continue el flujo normal del programa.
+      }
+
       // Creamos el usuario con los servicios de user.
       const createdUserId = await usersService.createUser({ user });
 
@@ -119,7 +130,7 @@ function authApi(app) {
       res.status(201).json({
         data: createdUserId,
         message: 'user created',
-      })
+      });
     } catch (error) {
       next(error); // Manejamos el error.
     }
