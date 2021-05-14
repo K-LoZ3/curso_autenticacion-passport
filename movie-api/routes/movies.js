@@ -1,4 +1,7 @@
 const express = require('express');
+const passport = require('passport'); // Importamos para usar la strategia
+// para proteger las rutas.
+const boom = require('@hapi/boom');
 
 // Eliminamos moviesMock ya que este sera traido por la capa de servicios.
 // const { moviesMock } = require('../utils/mocks/movies'); // Archivos de base de datos falsa por el momento.
@@ -18,6 +21,31 @@ const cacheResponse = require('../utils/cacheResponse');
 // Importamos los tiempos para usarlos al establecer la cache.
 const { FIVE_MINUTES_IN_SECONDS, SIXTY_MINUTES_IN_SECONDS } = require('../utils/time');
 
+// JWT srtrategy
+require('../utils/auth/strategies/jwt'); // Con esto implementamos el middleware de jwt.
+// Con esto lo que logramos es que donde usemos passport, este se encargara de buscar el
+// usuario y devolverlo validando que este existe y que tiene un jwt.
+
+//Crearemos un middleware para usar la estrategia passport de jwt:
+function protectRoutes(req, res, next) {
+  passport.authenticate('jwt', (error,user) => {
+    // Si ocurre un error o el usuario que me devuelve la strategia no existe
+    // llamamos a next pasandole a boom
+    if(error || !user) return next(boom.unauthorized());
+
+    // De lo contrario ejecutaremos next para que llame al siguiente middlware (que en
+    // este caso seria el validation handler y el manejador de ruta).
+    // Creo que con esto ejecutamos la estrategia passport como tal. Es como lo que
+    // se hizo en el archivo jwt pero se hace asi porque estamos dentro de la funcion.
+    req.login(user, {session : false}, (err) => {
+      if(err) return next(err);
+      next();
+    });
+  })(req, res, next);
+}
+// De ahora en adelante para una peticion en esta ruta debemos hacerla con un barer-token
+// en el apartado de autorizacion de postman.
+
 /* 
   Las rutas solo deben manejar url y parametros.
   Los servicios seran los que tengan la logica para las repuestas de los endPoints.
@@ -26,13 +54,24 @@ const { FIVE_MINUTES_IN_SECONDS, SIXTY_MINUTES_IN_SECONDS } = require('../utils/
 // Esta funcion nos permite ser dinamicos y controlar que app consumira la ruta.
 function moviesApi(app) {
   const router = express.Router(); // Creams un router.
-  app.use('/api/movies', router); // Esta direccion usara este rourer.
+  app.use('/api/movies', protectRoutes, router); // Esta direccion usara este rourer.
+  // Con esta line no hace falta agreagar a todas las peticiones el middleware como este
+  // router.get('/', protectRoutes, async function(req, res, next) {
+  // app.use(protectRoutes); No funciona, funciona como esta en la linea anterior.
 
   // Instanciamos la clase de los servicios.
   const moviesService = new MoviesService();
 
   // Este get del home se refuere a la ruta principal del router ( /api/movies ).
   // No usaremos ninguna validacion de schema para este.
+  // Usamos la estrategia de jwt y session false para que el servidor no maneje los datos de la session.
+  // Este passport funciona como un middleware y verifica lo anteterior.
+  // router.get('/', passport.authenticate('jwt', { session: false }), async function(req, res, next) {
+  // La linea anterior es como se hizo en clase. Esta genera un problema y es que si no se envia un jwt
+  // la aplicacion falla por completo. De esta manera manejamos el error.
+  // router.get('/', protectRoutes, async function(req, res, next) {
+  // Con esta linea usamos un middleware que se encarga de usar la estrategia jwt que esta en el archivo
+  // strategies/jwt.js y ademas manejar el error para que no se detenga la app.
   router.get('/', async function(req, res, next) {
     // Se usa try/catch porque es codigo es asincrono pero con promesas y async/await.
 

@@ -1,5 +1,5 @@
 const passport = require('passport'); // Para implementar la estrategia.
-const { Stretegy, ExtractJwt } = require('passport-jwt'); // La estrategia.
+const { Strategy, ExtractJwt } = require('passport-jwt'); // La estrategia.
 const boom = require('@hapi/boom'); // Para el manejo de errores.
 
 // Los servicios para buscar usuarios en la base de datos.
@@ -7,7 +7,7 @@ const UsersService = require('../../../services/users');
 const { config } = require('../../../config');
 
 passport.use(
-  new Stretegy({ // Implementamos la estrategia.
+  new Strategy({ // Implementamos la estrategia.
     secretOrKey: config.authJWTSecret, // Este es el secrect que tenemos en .env con el que generamos los tokens.
     // Con esto le decimos a la estrategia que saque el jwt del header.
     jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),

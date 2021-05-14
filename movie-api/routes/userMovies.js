@@ -1,4 +1,5 @@
 const express = require('express');
+const passport = require('passport'); // Para la estrategia.
 
 // Para user los servicios de user-movies.
 const UserMoviesService = require('../services/userMovies');
@@ -10,9 +11,34 @@ const { userIdSchema } = require('../utils/schemas/users');
 const { createUserMovieSchema, userMovieIdSchema } = require('../utils/schemas/userMovies');
 const { query } = require('express');
 
+// JWT srtrategy
+require('../utils/auth/strategies/jwt'); // Con esto implementamos el middleware de jwt.
+// Con esto lo que logramos es que donde usemos passport, este se encargara de buscar el
+// usuario y devolverlo validando que este existe y que tiene un jwt.
+
+// Esta funcion se podria crear en el archivo jwt.js e importarlo pero de momento lo dejare asi.
+//Crearemos un middleware para usar la estrategia passport de jwt:
+function protectRoutes(req, res, next) {
+  passport.authenticate('jwt', (error,user) => {
+    // Si ocurre un error o el usuario que me devuelve la strategia no existe
+    // llamamos a next pasandole a boom
+    if(error || !user) return next(boom.unauthorized());
+
+    // De lo contrario ejecutaremos next para que llame al siguiente middlware (que en
+    // este caso seria el validation handler y el manejador de ruta).
+    // Creo que con esto ejecutamos la estrategia passport como tal. Es como lo que
+    // se hizo en el archivo jwt pero se hace asi porque estamos dentro de la funcion.
+    req.login(user, {session : false}, (err) => {
+      if(err) return next(err);
+      next();
+    });
+  })(req, res, next);
+}
+
 function userMoviesApi(app) {
   const router = express.Router();
-  app.use('/api/user-movies', router);
+  app.use('/api/user-movies', protectRoutes, router);
+  // Para aplicar el middleware a todas las peticiones de la ruta.
 
   const userMoviesService = new UserMoviesService();
 

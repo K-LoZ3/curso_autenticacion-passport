@@ -61,6 +61,7 @@ function authApi(app) {
         // Si sale bien entonces usamos esta funcion para el login. Login viene de passport
         // este le dal al req esta funcion cuando se implementa.
         // Con session: false le decimos que no queremos que mantenga la session activa.
+        // Creo que con esto ejecutamos la implementacion de passport como estrategia.
         req.login(user, { session: false }, async function(error) {
           // Si esto genera error lo manejamos.
           if (error) {
