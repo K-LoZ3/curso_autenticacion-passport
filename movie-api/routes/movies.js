@@ -15,6 +15,8 @@ const {
 
 // Importamos para validar si los datos cumplen con el schema.
 const validationHandler = require('../utils/middleware/validationHandler');
+// Importamos para validar que tiene los permisos necesarios. 
+const scopesValidationHandler = require('../utils/middleware/scopesValidationHandler');
 
 // Exportamos la funcion de establecer cache a las peticiones.
 const cacheResponse = require('../utils/cacheResponse');
@@ -72,7 +74,9 @@ function moviesApi(app) {
   // router.get('/', protectRoutes, async function(req, res, next) {
   // Con esta linea usamos un middleware que se encarga de usar la estrategia jwt que esta en el archivo
   // strategies/jwt.js y ademas manejar el error para que no se detenga la app.
-  router.get('/', async function(req, res, next) {
+  // En scopesValidationHandler pasamos un arreglo con los permisos que necesita para esta peticion.
+  // Para este caso 'read:movies' es el scope necesario.
+  router.get('/', scopesValidationHandler(['read:movies']), async function(req, res, next) {
     // Se usa try/catch porque es codigo es asincrono pero con promesas y async/await.
 
     // Establecemos la cache en 300 milisegundos como esta en la constante.
@@ -103,7 +107,7 @@ function moviesApi(app) {
   // Esta validacion la hacemos en el llamado de la funcion. Usamos la funcion validationHandler y como parametro solo
   // necesitamos pasarle el schema y de donde sacara los datos. El schema lo pasamos con { movieId: movieIdSchema } y
   // el segundo seria params ya que ahi estara el id que queremos validar.
-  router.get('/:movieId', validationHandler({ movieId: movieIdSchema }, 'params'), async function(req, res, next) {
+  router.get('/:movieId', scopesValidationHandler(['read:movies']), validationHandler({ movieId: movieIdSchema }, 'params'), async function(req, res, next) {
     // Establecemos la cache en 3600 milisegundos como esta en la constante.
     cacheResponse(res, SIXTY_MINUTES_IN_SECONDS);
 
@@ -123,7 +127,7 @@ function moviesApi(app) {
   // Para el post necesitamos validar el schema create ya que con post cramos una nueva movie.
   // Para este caso solo vamos a pasar el schema con el que queremos validar ya que los datos
   // los sacara del body que es el valor por defecto del segundo parametro de esta funcion.
-  router.post('/', validationHandler(createMovieSchema), async function(req, res, next) {
+  router.post('/', scopesValidationHandler(['create:movies']), validationHandler(createMovieSchema), async function(req, res, next) {
     // Para el post los datos pasan es en el cuerpo de la peticion.
     // Entonces seria const { body } = req; Pero como no queremos que la variable
     // se llame body le ponemos un alias movie con { body: movie }
@@ -144,7 +148,8 @@ function moviesApi(app) {
   // De esta manera primero valida una y luego la otra. Como necesitamos validar el id y ademas validar
   // el schema de actualizacion de movie.
   router.put(
-    '/:movieId', 
+    '/:movieId',
+    scopesValidationHandler(['update:movies']),
     validationHandler({ movieId: movieIdSchema }, 'params'), 
     validationHandler(updateMovieSchema), 
     async function(req, res, next) {
@@ -182,7 +187,7 @@ function moviesApi(app) {
 	});
 
   // Para el delete solo hace falta validar el id.
-  router.delete('/:movieId', validationHandler({ movieId: movieIdSchema }, 'params'), async function(req, res, next) {
+  router.delete('/:movieId', scopesValidationHandler(['delete:movies']), validationHandler({ movieId: movieIdSchema }, 'params'), async function(req, res, next) {
     const { movieId } = req.params;
 
     try {

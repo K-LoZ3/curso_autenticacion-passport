@@ -5,6 +5,8 @@ const passport = require('passport'); // Para la estrategia.
 const UserMoviesService = require('../services/userMovies');
 // Para validar los schemas.
 const validationHandler = require('../utils/middleware/validationHandler');
+// Importamos para validar que tiene los permisos necesarios. 
+const scopesValidationHandler = require('../utils/middleware/scopesValidationHandler');
 
 // Traemos todos los schemas necesarios.
 const { userIdSchema } = require('../utils/schemas/users');
@@ -43,7 +45,7 @@ function userMoviesApi(app) {
   const userMoviesService = new UserMoviesService();
 
   // Validamos primero si el id cumple con el userId-schema.
-  router.get('/', validationHandler({ userId: userIdSchema }, query), async function(req, res, next) {
+  router.get('/', scopesValidationHandler(['read:user-movies']), validationHandler({ userId: userIdSchema }, query), async function(req, res, next) {
     const { userId } = req.query; // Almacenamos el userId
 
     try {
@@ -63,7 +65,7 @@ function userMoviesApi(app) {
 
   // Para crear la pelicula dentro de la colleccion user-movie.
   // Validamos si cumple con el esquema.
-  router.post('/', validationHandler(createUserMovieSchema), async function(req, res, next) {
+  router.post('/', scopesValidationHandler(['create:user-movies']), validationHandler(createUserMovieSchema), async function(req, res, next) {
     // Del body traemos todo lo necesario para crear la pelicula del usuario.
     const { body: userMovie } = req;
 
@@ -85,7 +87,7 @@ function userMoviesApi(app) {
 
   // Para borrar una pelicula del usuario.
   // Validamos si cumple con el schema.
-  router.delete('/:userMovieId', validationHandler({ userMovieId: userMovieIdSchema }, 'params'), async function(req, res, next) {
+  router.delete('/:userMovieId', scopesValidationHandler(['delete:user-movies']), validationHandler({ userMovieId: userMovieIdSchema }, 'params'), async function(req, res, next) {
     // De los parametros sacamos el id de la pelicula del usuario.
     const { userMovieId } = req.params;
 
