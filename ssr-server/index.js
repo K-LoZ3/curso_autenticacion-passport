@@ -26,6 +26,9 @@ app.use(cookieParser());
 require('./utils/auth/strategies/basic');
 // Con esta ya implementamos la estrategia basic.
 
+// OAuth strategy
+require('./utils/auth/strategies/oauth');
+
 /* 
 Generalmente cuando queremos implementar la opción de recordar
 sesión para Express mediante passport, lo que hacemos es extender
@@ -152,6 +155,32 @@ app.delete("/user-movies/:userMovieId", async function(req, res, next) {
   } catch (error) {
     next(error);
   }
+});
+
+// Para iniciar el proseco de autenticacion con google.
+app.get('/auth/google-oauth', passport.authenticate('google-oauth', { // Le decimos que use la estrategia que definimos.
+  scope: ['email', 'profile', 'openid'], // Los alcances que tendra.
+}));
+
+// Esta sera la ruta a la que enviara google los datos.
+app.get('auth/google-oauth/callback', passport.authenticate('google-oauth', { session: false }), function(req, res, next) {
+  if (!req.user) { // Manejamos el error si el user no existe.
+    next(boom.unauthorized());
+  }
+  
+  // Obtenemos los datos necesarios.
+  const { token, ...user } = req.user;
+
+  // Creamos la cookie para poner el token de nombre 'token'.
+  // El objeto es para decir que en produccion solo usara http y
+  // https.
+  res.cookie('token', token, {
+    httpOnly: !config.dev,
+    secure: !config.dev,
+  });
+
+  // Retornamos el user con estatus 200.
+  res.status(200).json(user);
 });
 
 // Lanzamos la app en el puerto que esta en la variable de entorno.
