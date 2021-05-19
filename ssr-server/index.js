@@ -26,10 +26,21 @@ app.use(cookieParser());
 require('./utils/auth/strategies/basic');
 // Con esta ya implementamos la estrategia basic.
 
+/* 
+Generalmente cuando queremos implementar la opción de recordar
+sesión para Express mediante passport, lo que hacemos es extender
+la expiración de la Cookie.
+*/
 
+// Agregamos las variables de timpo en segundos
+const THIRTY_DAYS_IN_SEC = 2592000000;
+const TWO_HOURS_IN_SEC = 7200000;
 
 // Para iniciar session.
 app.post("/auth/sign-in", async function(req, res, next) {
+  // Obtenemos el atributo rememberMe desde el cuerpo del request
+  const { rememberMe } = req.body;
+
   passport.authenticate('basic', function(error, data) {
     try {
       // Si nuestra estrategia basic fallo, devolvemos un error.
@@ -47,9 +58,14 @@ app.post("/auth/sign-in", async function(req, res, next) {
 
         // Creamos una cookie en la respuesta.
         // Esta cookies se llamara token e incertamos el token en la cookie.
-        res.cookie('token', token, {
-          httpOnly: !config.dev, // Solo sera http cuando estemos en produccion.
-          secure: !config.dev, // Y usara https solo en produccion tambien.
+        // Si el atributo rememberMe es verdadero la expiración será en 30 dias
+        // de lo contrario la expiración será en 2 horas
+        // Este tiempo no esta implementado bien ya que no se como la api-server
+        // implementaria esto si ya esta terminada.
+        res.cookie("token", token, {
+          httpOnly: !config.dev,
+          secure: !config.dev,
+          maxAge: rememberMe ? THIRTY_DAYS_IN_SEC : TWO_HOURS_IN_SEC,
         });
 
         // Respondemos con el user.
@@ -89,15 +105,96 @@ app.get("/movies", async function(req, res, next) {
 
 // Crear peliculas del usuario (agregar a favoritos).
 app.post("/user-movies", async function(req, res, next) {
+  try {
+    // Sacamos user-movie del body.
+    const { body: userMovie } = req;
+    const { token } = req.cookies; // El token desde las cookies.
 
+    // Con axios sacamos la data y el estatus.
+    const { data, status } = await axios({
+      url: `${config.apiUrl}/api/user-movies`, // La ruta para crear un user-movie.
+      headers: { Authorization: `Bearer ${token}` }, // El bearer token para la autorizacion.
+      method: 'post',
+      data: userMovie,
+    });
+
+    if (status !== 201) {
+      return next(boom.badImplementation());
+    }
+
+    // Si todo es correcto retornamos la data.
+    res.status(201).json(data);
+  } catch (error) {
+    next(error);
+  }
 });
 
 // Eliminar la pelicula del usuario.
 app.delete("/user-movies/:userMovieId", async function(req, res, next) {
+  try {
+    // Sacamos el id de los parametros.
+    const { userMovieId } = req.params;
+    const { token } = req.cookies; // El token desde las cookies.
 
+    // Con axios sacamos la data y el estatus.
+    const { data, status } = await axios({
+      url: `${config.apiUrl}/api/user-movies/${userMovieId}`, // La ruta para crear un user-movie.
+      headers: { Authorization: `Bearer ${token}` }, // El bearer token para la autorizacion.
+      method: 'delete',
+    });
+
+    if (status !== 200) {
+      return next(boom.badImplementation());
+    }
+
+    // Si todo es correcto retornamos la data.
+    res.status(200).json(data);
+  } catch (error) {
+    next(error);
+  }
 });
 
 // Lanzamos la app en el puerto que esta en la variable de entorno.
 app.listen(config.port, function() {
   console.log(`Listening http://localhost:${config.port}`);
 });
+
+// ***************************************************************
+// Para probar las rutas...
+/* 
+  Levantamos los 2 servidores (movies-api, ssr-server).
+  Creamos 3 variables de entorno en postman para facilitar el uso de datos.
+  La primera sera client_url para la ruta del ssr ya que este esta en el port 8000
+  los otros 2 los creamos en blanco ya que les asignnaremos valores al crear
+  el id que les toca. 
+  user_id cuando iniciemos session nos dara un id que lo
+  asignaremos a esta variable.
+  user_movie_id cuando creemos/agregemos la movie del/al usuario.
+
+  En sign-in lo unico que nesesitamos es la ruta y en authorization el user y pasword
+  ya que el token (apiKeyToken) lo trae de .env y lo hace el ssr. Este nos devuelve
+  {
+    "user": {
+      "id": "609c41ea0147f706866c7ab7",
+      "name": "carlos eduardo",
+      "email": "carlos@gmail.com"
+    }
+  }
+  De aqui sacamos el id y lo asignamos a user_id de postman
+  Este ademas devuelve una cookie tambien. Postman configura para usar esta cookie en
+  todas las demas peticiones.
+
+  Para crear la pelicula del usuario o asignarle una movie al user {{client_url}}/user-movies
+  Con esta ruta en el body le pasamos el objeto para crear user-movie:
+  {
+    "userId": "{{user_id}}",
+    "movieId": "{{movie_id}}"
+  }
+  Esto es porque la variables de entrono de postman ya esta deinidas. userId lo acabamos de
+  agregar y la segunda la creamos en la clase pasada.
+
+  Para eliminar el user-movie o quetarle la movie al user {{client_url}}/user-movies/{{user_movie_id}}
+  con el metodo delete. Este no necesita nada mas. Esto es porque tanto en el anterior como en este
+  el token queda en la cookie y se postman lo usa para esta peticiones. Con esto tiene la info del user
+  y demas, salvo que en la url le pasamos la movie que le vamos a quitar al user.
+*/

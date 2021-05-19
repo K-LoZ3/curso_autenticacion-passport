@@ -1,5 +1,6 @@
 const express = require('express');
 const passport = require('passport'); // Para la estrategia.
+const boom = require('@hapi/boom');
 
 // Para user los servicios de user-movies.
 const UserMoviesService = require('../services/userMovies');
