@@ -29,6 +29,9 @@ require('./utils/auth/strategies/basic');
 // OAuth strategy
 require('./utils/auth/strategies/oauth');
 
+// Google openId oauth strategy
+require('./utils/auth/strategies/google');
+
 /* 
 Generalmente cuando queremos implementar la opción de recordar
 sesión para Express mediante passport, lo que hacemos es extender
@@ -180,6 +183,30 @@ app.get('/auth/google-oauth/callback', passport.authenticate('google-oauth', { s
   });
 
   // Retornamos el user con estatus 200.
+  res.status(200).json(user);
+});
+
+// Esta ruta es para usar la estrategia de google directamente.
+app.get("/auth/google", passport.authenticate("google", {
+  scope: ["email", "profile", "openid"],
+}));
+
+// Esta es para recivir los datos de google pero usando la estrategia de google directamente.
+app.get("/auth/google/callback", passport.authenticate("google", { session: false }), function(req, res, next) {
+  if (!req.user) { // Manejamos el error si no existe el user.
+    next(boom.unauthorized());
+  }
+
+  // Obtenemos el token y user.
+  const { token, ...user } = req.user;
+
+  // Creamos la cookie y ponemos el JWT ahi.
+  res.cookie("token", token, {
+    httpOnly: !config.dev,
+    secure: !config.dev,
+  });
+
+  // Mostramos el user en el navegador.
   res.status(200).json(user);
 });
 
