@@ -34,6 +34,20 @@ class UsersService {
     // Devolvemos el id del usuario que es el que nos devuelve mongo al crear un usuario.
     return createUserId;
   }
+
+  async getOrCreateUser({ user }) {
+    // Buscamos si el usuario esta en la base de datos.
+    const queriedUser = await this.getUser({ email: user.email });
+
+    // Si este existe retornamos el resultado.
+    if (queriedUser) {
+      return queriedUser;
+    }
+
+    // Creamos el user si este no existe.
+    await this.createUser({ user });
+    return await this.getUser({ email: user.email }); // Buscamos el user recien creado y retornamos su resultado.
+  }
 }
 
 module.exports = UsersService;

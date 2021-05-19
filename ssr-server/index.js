@@ -163,7 +163,7 @@ app.get('/auth/google-oauth', passport.authenticate('google-oauth', { // Le deci
 }));
 
 // Esta sera la ruta a la que enviara google los datos.
-app.get('auth/google-oauth/callback', passport.authenticate('google-oauth', { session: false }), function(req, res, next) {
+app.get('/auth/google-oauth/callback', passport.authenticate('google-oauth', { session: false }), function(req, res, next) {
   if (!req.user) { // Manejamos el error si el user no existe.
     next(boom.unauthorized());
   }
@@ -226,4 +226,6 @@ app.listen(config.port, function() {
   con el metodo delete. Este no necesita nada mas. Esto es porque tanto en el anterior como en este
   el token queda en la cookie y se postman lo usa para esta peticiones. Con esto tiene la info del user
   y demas, salvo que en la url le pasamos la movie que le vamos a quitar al user.
+
+  Para probar si logearse desde google funciona entramos a http://localhost:8000/auth/google-oauth
 */

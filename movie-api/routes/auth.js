@@ -8,7 +8,7 @@ const UsersService = require('../services/users'); // Para crear los usuarios.
 const validationHandler = require('../utils/middleware/validationHandler'); // Para validar que el objeto que pasemos para
 // crear el usuario concuerde con el schema.
 
-const { createUserSchema } = require('../utils/schemas/users');
+const { createUserSchema, createProviderUserSchema } = require('../utils/schemas/users');
 
 // Para obtener el secret con el que firmaremos el token.
 const { config } = require('../config');
@@ -136,6 +136,52 @@ function authApi(app) {
       next(error); // Manejamos el error.
     }
   });
+
+  // Con esta ruta logeamos al user o creamos el user.
+  router.post('/sign-provider', validationHandler(createProviderUserSchema), async function(req, res, next) {
+    const { body } = req; // Obtenemos el body con la info que nos envia google ya que en este punto
+    // la estrategia oauth 2.0 ya se ejecuto.
+
+    const { apiKeyToken, ...user } = body; // El user y el token para el scope.
+
+    // Si este no esta manejamos el error.
+    if(!apiKeyToken) {
+      next(boom.unauthorized('apiKeyToken is required'));
+    }
+
+    try {
+      // Cremaos o buscamos el user en la base de datos.
+      const queriedUser = await usersService.getOrCreateUser({ user });
+      // Buscamos el alcance que tendra, scopes.
+      const apiKey = await apiKeysService.getApiKey({ token: apiKeyToken });
+
+      // Si no existe manejamos el error.
+      if (!apiKey) {
+        next(boom.unauthorized());
+      }
+
+      // Obtenemos el id y demas cosas del user.
+      const { _id: id, name, email } = queriedUser;
+
+      // Lo ponemos en el payload para crear el JWT.
+      const payload = {
+        sub: id,
+        name,
+        email,
+        scopes: apiKey.scopes,
+      }
+
+      // Creamos el JWT.
+      const token = jwt.sign(payload, config.authJWTSecret, {
+        expiresIn: '15m',
+      });
+
+      // Si todo esta bien mostramos el token con el user.
+      return res.status(200).json({ token, user: { id, name, email }});
+    } catch (error) {
+      next(error);
+    }
+  })
 }
 
 module.exports = authApi;
