@@ -8,7 +8,8 @@ a traves de este proxy.
 */
 
 const express = require("express"); // Para el servidor.
-const passport = require('passport'); // Para implementar la estrategia que definimos en basic.js
+const passport = require('passport'); // Para implementar la estrategia que definimos en basic.js.
+const session = require('express-session'); // Esto es para la strategia de twitter ya que este middleware requiere tener una sesion activa.
 const boom = require('@hapi/boom'); // Manejar errores.
 const cookieParser = require('cookie-parser'); // Creo que es porque la estructura del proyecto anterior los tiene. Por conflicto.
 const axios = require('axios'); // Para hacer un request al api.
@@ -21,6 +22,9 @@ const app = express(); // Creamos la app.
 // body parser
 app.use(express.json());
 app.use(cookieParser());
+app.use(session({ secret: config.sessionSecret })); // Iniciamos session con el session Secret que nos da twitter.
+app.use(passport.initialize()); // Para inicializar la seccion.
+app.use(passport.session()); // Esto es porque twitter exige que haya una session activa.
 
 // Basic Strategy
 require('./utils/auth/strategies/basic');
@@ -31,6 +35,9 @@ require('./utils/auth/strategies/oauth');
 
 // Google openId oauth strategy
 require('./utils/auth/strategies/google');
+
+// Twitter oauth strategy
+require('./utils/auth/strategies/twitter');
 
 /* 
 Generalmente cuando queremos implementar la opción de recordar
@@ -209,6 +216,28 @@ app.get("/auth/google/callback", passport.authenticate("google", { session: fals
   // Mostramos el user en el navegador.
   res.status(200).json(user);
 });
+
+// Esto genera el redireccionamiento como en la estrategia de google.
+app.get('/auth/twitter', passport.authenticate('twitter'));
+
+// La ruta de callback para que envien los datos de twitter.
+app.get('/auth/twitter/callback', passport.authenticate('twitter', { session: false }), function(req, res, next) {
+  if (!req.user) { // Manejamos el error si no hay user.
+    next(boom.unauthorized());
+  }
+
+  // Obtenemos el token y user por separado.
+  const { token, ...user } = req.user;
+
+  // Incluimos el token dentro de la cookie.
+  res.cookie('token', token, {
+    httpOnly: !config.dev,
+    secure: !config.dev,
+  });
+
+  // Mostramos el user en el navegador.
+  res.status(200).json(user);
+})
 
 // Lanzamos la app en el puerto que esta en la variable de entorno.
 app.listen(config.port, function() {
