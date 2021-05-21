@@ -1,4 +1,6 @@
 const express = require('express');
+const helmet = require('helmet'); // Para los header de seguridad.
+
 const app = express();
 
 const { config } = require('./config/index');
@@ -12,6 +14,7 @@ const notFoundHandler = require('./utils/middleware/noyFoundHandler');
 
 // body parser. Para que sepa interpretar los json en las rutas cuando pasamos los datos.
 app.use(express.json());
+app.use(helmet()); // Para mas seguridad mediante este middelware.
 
 // Usamos la funcion para manejar el router o ruta /api/movies
 authApi(app); // Para el login de los users.

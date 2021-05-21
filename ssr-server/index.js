@@ -8,6 +8,7 @@ a traves de este proxy.
 */
 
 const express = require("express"); // Para el servidor.
+const helmet = require('helmet'); // Para los header de seguridad.
 const passport = require('passport'); // Para implementar la estrategia que definimos en basic.js.
 const session = require('express-session'); // Esto es para la strategia de twitter ya que este middleware requiere tener una sesion activa.
 const boom = require('@hapi/boom'); // Manejar errores.
@@ -21,6 +22,7 @@ const app = express(); // Creamos la app.
 
 // body parser
 app.use(express.json());
+app.use(helmet()); // Para mas seguridad mediante este middelware.
 app.use(cookieParser());
 app.use(session({ secret: config.sessionSecret })); // Iniciamos session con el session Secret que nos da twitter.
 app.use(passport.initialize()); // Para inicializar la seccion.

@@ -57,7 +57,9 @@ typings/
 .yarn-integrity
 
 # dotenv environment variables file
-.env
+#.env
+# Ignoro esta parte porque quiero guardar estos valores para recordar
+# De donde saleny como son.
 
 # IDE
 .idea/*
