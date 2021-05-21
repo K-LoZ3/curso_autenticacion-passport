@@ -15,7 +15,7 @@ passport.use(new GoogleStrategy({
     clientSecret: config.googleClientSecret,
     callbackURL: "/auth/google/callback", // ruta para que google nos envie los datos.
   },
-  async (accessToken, refreshToken, { _json: profile }, done) => {
+  async function(accessToken, refreshToken, { _json: profile }, done) {
     try{
       // Hacemos una peticion a la api-server (movies-api) para que cree o busque el user.
       // con esta peticion tambien creamos el JWT.

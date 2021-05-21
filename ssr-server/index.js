@@ -39,6 +39,9 @@ require('./utils/auth/strategies/google');
 // Twitter oauth strategy
 require('./utils/auth/strategies/twitter');
 
+// Linkedin oauth strategy
+require('./utils/auth/strategies/linkedin');
+
 /* 
 Generalmente cuando queremos implementar la opción de recordar
 sesión para Express mediante passport, lo que hacemos es extender
@@ -237,7 +240,31 @@ app.get('/auth/twitter/callback', passport.authenticate('twitter', { session: fa
 
   // Mostramos el user en el navegador.
   res.status(200).json(user);
-})
+});
+
+// Esta ruta es para usar la estrategia de linkedin
+app.get("/auth/linkedin", passport.authenticate('linkedin', {
+  scope: ['r_emailaddress', 'r_liteprofile'],
+}));
+
+// Esta es para recivir los datos de google pero usando la estrategia de google directamente.
+app.get("/auth/linkedin/callback", passport.authenticate('linkedin', { session: false }), function(req, res, next) {
+  if (!req.user) { // Manejamos el error si no existe el user.
+    next(boom.unauthorized());
+  }
+
+  // Obtenemos el token y user.
+  const { token, ...user } = req.user;
+
+  // Creamos la cookie y ponemos el JWT ahi.
+  res.cookie('token', token, {
+    httpOnly: !config.dev,
+    secure: !config.dev,
+  });
+
+  // Mostramos el user en el navegador.
+  res.status(200).json(user);
+});
 
 // Lanzamos la app en el puerto que esta en la variable de entorno.
 app.listen(config.port, function() {
